@@ -375,7 +375,9 @@ def test_page_html(token: str) -> str:
         <input id="title" name="title" type="text" value="测试标题" />
         <label for="content">内容 (content)</label>
         <textarea id="content" name="content" rows="4">这是测试内容</textarea>
-        <label for="userid">用户 ID (userid，可选，多用户用 | 分隔)</label>
+        <label for="shortid">用户短标识 (shortid，config.toml [users] 中定义)</label>
+        <input id="shortid" name="shortid" type="text" placeholder="例如: tesla" />
+        <label for="userid">用户 OpenID (userid，可选，直接指定时忽略 shortid)</label>
         <input id="userid" name="userid" type="text" placeholder="例如: OPENID1|OPENID2" />
         <label for="appid">WX_APPID (可选，留空使用环境变量)</label>
         <input id="appid" name="appid" type="text" />
@@ -404,7 +406,7 @@ def test_page_html(token: str) -> str:
       const responseCard = document.getElementById('responseCard');
 
       clearBtn.addEventListener('click', () => {{
-        ['title','content','userid','appid','secret','template_id','base_url'].forEach(id => {{
+        ['title','content','shortid','userid','appid','secret','template_id','base_url'].forEach(id => {{
           const el = document.getElementById(id); if (el) el.value = '';
         }});
         responseArea.textContent = ''; responseCard.style.display = 'none';
