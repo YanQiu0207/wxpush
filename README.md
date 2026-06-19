@@ -215,12 +215,10 @@ curl -X POST http://localhost:40001/wxsend \
 > **Windows / MINGW64 用户注意**：Git Bash（MINGW64）下直接在命令行用单引号传含中文的 body，可能因终端编码问题导致服务端 JSON 解析失败，报 `Missing required parameters`。建议将请求体以 UTF-8 编码保存到文件再传入：
 >
 > ```bash
-> # 先用文本编辑器将以下内容保存为 body.json（UTF-8 编码）
-> # {"title": "Webhook 通知", "content": "自动化任务已完成。"}
 > curl -X POST http://localhost:40001/wxsend \
 >   -H "Authorization: YOUR_TOKEN" \
 >   -H "Content-Type: application/json" \
->   -d @body.json
+>   --data-binary @- <<< '{"title": "Webhook 通知", "content": "自动化任务已完成。"}'
 > ```
 
 ### 成功响应
