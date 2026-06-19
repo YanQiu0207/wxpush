@@ -13,17 +13,18 @@ mcp = FastMCP("wxpush")
 
 
 @mcp.tool()
-async def send_wechat_message(title: str, content: str) -> str:
+async def send_wechat_message(title: str, content: str, shortid: str) -> str:
     """Send a WeChat message via the wxpush service.
 
     Args:
         title: Message title.
         content: Message body text.
+        shortid: Recipient identifier defined in the server's config.toml [users] section.
     """
     if not WXPUSH_URL or not WXPUSH_TOKEN:
         return "Error: WXPUSH_URL and WXPUSH_TOKEN must be configured."
 
-    payload = {"title": title, "content": content, "token": WXPUSH_TOKEN}
+    payload = {"title": title, "content": content, "token": WXPUSH_TOKEN, "shortid": shortid}
     async with httpx.AsyncClient() as client:
         resp = await client.post(f"{WXPUSH_URL}/wxsend", json=payload)
     data = resp.json()

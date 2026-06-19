@@ -5,6 +5,10 @@ port = 40001
 api_token      = "your_secret_token"
 wx_appid       = "your_wx_appid"
 wx_secret      = "your_wx_secret"
-wx_userid      = "openid1|openid2"
 wx_template_id = "your_template_id"
 wx_base_url    = ""
+
+[users]
+# shortid = "wx_openid"
+alice = "openid_of_alice"
+bob   = "openid_of_bob"

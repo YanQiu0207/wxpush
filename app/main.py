@@ -4,6 +4,7 @@ import time
 import sqlite3
 import secrets
 import asyncio
+import tomllib
 from pathlib import Path
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone, timedelta
@@ -23,9 +24,21 @@ logger = logging.getLogger(__name__)
 API_TOKEN = os.environ.get("API_TOKEN", "")
 WX_APPID = os.environ.get("WX_APPID", "")
 WX_SECRET = os.environ.get("WX_SECRET", "")
-WX_USERID = os.environ.get("WX_USERID", "")
 WX_TEMPLATE_ID = os.environ.get("WX_TEMPLATE_ID", "")
 WX_BASE_URL = os.environ.get("WX_BASE_URL", "")
+
+_CONFIG_PATH = Path(__file__).parent.parent / "config.toml"
+
+
+def _load_users() -> dict[str, str]:
+    if not _CONFIG_PATH.exists():
+        return {}
+    with open(_CONFIG_PATH, "rb") as f:
+        cfg = tomllib.load(f)
+    return cfg.get("users", {})
+
+
+USERS: dict[str, str] = _load_users()
 
 DB_PATH = Path(__file__).parent.parent / "messages.db"
 _BEIJING_TZ = timezone(timedelta(hours=8))
@@ -184,13 +197,20 @@ async def wxsend(request: Request, authorization: Optional[str] = Header(default
 
     appid = params.get("appid") or WX_APPID
     secret = params.get("secret") or WX_SECRET
-    userid_str = params.get("userid") or WX_USERID
     template_id = params.get("template_id") or WX_TEMPLATE_ID
     base_url = params.get("base_url") or WX_BASE_URL
 
+    shortid = params.get("shortid")
+    if shortid:
+        userid_str = USERS.get(shortid)
+        if not userid_str:
+            return JSONResponse({"msg": f"Unknown shortid: {shortid!r}"}, status_code=400)
+    else:
+        userid_str = params.get("userid")
+
     if not all([appid, secret, userid_str, template_id]):
         return JSONResponse(
-            {"msg": "Missing required environment variables: WX_APPID, WX_SECRET, WX_USERID, WX_TEMPLATE_ID"},
+            {"msg": "Missing required config: WX_APPID, WX_SECRET, WX_TEMPLATE_ID, and shortid or userid"},
             status_code=500,
         )
 

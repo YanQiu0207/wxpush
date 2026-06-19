@@ -4,6 +4,7 @@
 # ── 配置区，按需修改 ────────────────────────────────────────────
 WXSEND_URL = "https://wxpush.teslajuju.com"
 API_TOKEN  = "tesla"
+SHORTID    = "tesla"   # config.toml [users] 中定义的 shortid
 # ───────────────────────────────────────────────────────────────
 
 import re
@@ -44,7 +45,7 @@ def main() -> None:
     title = extract_title(content, file_path.name)
 
     endpoint = WXSEND_URL.rstrip("/") + "/wxsend"
-    payload = {"title": title, "content": content, "token": API_TOKEN}
+    payload = {"title": title, "content": content, "token": API_TOKEN, "shortid": SHORTID}
 
     print(f"Pushing \"{title}\" → {endpoint}")
     resp = httpx.post(endpoint, json=payload)

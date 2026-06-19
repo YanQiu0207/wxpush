@@ -22,6 +22,7 @@ wxpush-py/
 │   └── html_pages.py        # 内联 HTML 页面
 ├── .env.example             # 环境变量模板
 ├── config.toml.example      # 配置文件模板
+├── mcp_server.py            # MCP 服务入口
 ├── run.py                   # 服务启动入口（处理三级配置优先级）
 ├── .gitignore
 ├── Dockerfile
@@ -47,10 +48,17 @@ wxpush-py/
 | `API_TOKEN` | `--token` | 是 | 接口访问令牌，调用时需要携带 |
 | `WX_APPID` | `--appid` | 是 | 微信公众号 AppID |
 | `WX_SECRET` | `--secret` | 是 | 微信公众号 AppSecret |
-| `WX_USERID` | `--userid` | 是 | 默认接收用户的 OpenID，多个用 `|` 分隔 |
 | `WX_TEMPLATE_ID` | `--template-id` | 是 | 微信模板消息 ID |
 | `WX_BASE_URL` | `--base-url` | 否 | 消息点击后的跳转基础 URL |
 | `PORT` | `--port` | 否 | 服务端口，默认 `40001` |
+
+接收用户通过 `config.toml` 的 `[users]` 段配置，以 `shortid = "wx_openid"` 格式定义，支持多用户：
+
+```toml
+[users]
+yanqi  = "oUI0n3cSSkd5oTH9LBbinQkMQkAw"
+friend = "another_openid_here"
+```
 
 ### 配置文件（config.toml）
 
@@ -191,7 +199,8 @@ http://localhost:40001/skin/macos-hacker?title=服务器告警&message=**CPU 负
 | `token` | String | 是 | 访问令牌，也可通过 `Authorization` 请求头传入 |
 | `title` | String | 是 | 消息标题 |
 | `content` | String | 是 | 消息内容 |
-| `userid` | String | 否 | 临时覆盖默认接收用户，多个用 `|` 分隔 |
+| `shortid` | String | 与 `userid` 二选一 | `config.toml [users]` 中定义的用户短标识，服务端负责解析为 OpenID |
+| `userid` | String | 与 `shortid` 二选一 | 直接指定接收用户的 OpenID，多个用 `\|` 分隔 |
 | `appid` | String | 否 | 临时覆盖默认 `WX_APPID` |
 | `secret` | String | 否 | 临时覆盖默认 `WX_SECRET` |
 | `template_id` | String | 否 | 临时覆盖默认模板 ID |
@@ -209,7 +218,7 @@ http://localhost:40001/wxsend?token=YOUR_TOKEN&title=服务器通知&content=部
 curl -X POST http://localhost:40001/wxsend \
   -H "Authorization: YOUR_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"title": "Webhook 通知", "content": "自动化任务已完成。"}'
+  -d '{"title": "Webhook 通知", "content": "自动化任务已完成。", "shortid": "yanqi"}'
 ```
 
 > **Windows / MINGW64 用户注意**：Git Bash（MINGW64）下直接在命令行用单引号传含中文的 body，可能因终端编码问题导致服务端 JSON 解析失败，报 `Missing required parameters`。建议将请求体以 UTF-8 编码保存到文件再传入：
@@ -218,7 +227,7 @@ curl -X POST http://localhost:40001/wxsend \
 > curl -X POST http://localhost:40001/wxsend \
 >   -H "Authorization: YOUR_TOKEN" \
 >   -H "Content-Type: application/json" \
->   --data-binary @- <<< '{"title": "Webhook 通知", "content": "自动化任务已完成。"}'
+>   --data-binary @- <<< '{"title": "Webhook 通知", "content": "自动化任务已完成。", "shortid": "yanqi"}'
 > ```
 
 ### 成功响应
@@ -232,6 +241,42 @@ curl -X POST http://localhost:40001/wxsend \
 ```json
 {"msg": "Invalid token"}
 ```
+
+## MCP 服务
+
+`mcp_server.py` 将推送能力封装为 MCP 工具，供 Claude Desktop 等支持 MCP 协议的客户端直接调用。
+
+### 工具
+
+| 工具名 | 参数 | 说明 |
+|---|---|---|
+| `send_wechat_message` | `title`、`content`、`shortid` | 发送微信模板消息给指定用户 |
+
+`shortid` 在服务端 `config.toml [users]` 中定义，调用方无需感知 OpenID。
+
+### 配置（Claude Desktop）
+
+在 `claude_desktop_config.json` 中添加：
+
+```json
+{
+  "mcpServers": {
+    "wxpush": {
+      "command": "python",
+      "args": ["/path/to/wxpush-py/mcp_server.py"],
+      "env": {
+        "WXPUSH_URL": "http://your-server:40001",
+        "WXPUSH_TOKEN": "your-token"
+      }
+    }
+  }
+}
+```
+
+| 环境变量 | 说明 |
+|---|---|
+| `WXPUSH_URL` | wxpush HTTP 服务地址 |
+| `WXPUSH_TOKEN` | API 访问令牌（与服务端 `API_TOKEN` 一致） |
 
 ## 与原版对应关系
 
