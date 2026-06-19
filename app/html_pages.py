@@ -148,9 +148,34 @@ SKIN_HTML = """\
     </div>
     <script src="https://cdn.jsdelivr.net/npm/marked/lib/marked.umd.js"></script>
     <script>
-        function getUrlParams() {
+        async function fillContent() {
             const p = new URLSearchParams(window.location.search);
-            return { title: p.get('title') || '消息推送', message: p.get('message') || '无告警信息', date: p.get('date') || '无时间信息' };
+            const id = p.get('id');
+            let title, message, date;
+            if (id) {
+                try {
+                    const resp = await fetch('/api/content/' + encodeURIComponent(id));
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        title = data.title || '消息推送';
+                        message = data.content || '无告警信息';
+                        date = data.date || '无时间信息';
+                    } else {
+                        title = '消息推送'; message = '消息不存在或已过期'; date = '';
+                    }
+                } catch (e) {
+                    title = '消息推送'; message = '加载失败'; date = '';
+                }
+            } else {
+                title = p.get('title') || '消息推送';
+                message = p.get('message') || '无告警信息';
+                date = p.get('date') || '无时间信息';
+            }
+            document.getElementById('title').textContent = title;
+            const msgEl = document.getElementById('message');
+            msgEl.textContent = message;
+            if (typeof marked !== 'undefined') msgEl.innerHTML = marked.parse(msgEl.textContent);
+            document.getElementById('date').textContent = date;
         }
         function createParticles() {
             const c = document.getElementById('particles');
@@ -163,14 +188,6 @@ SKIN_HTML = """\
                 el.style.animationDelay = (Math.random() * 20) + 's'; el.style.animationDuration = (20 + Math.random() * 15) + 's';
                 c.appendChild(el);
             }
-        }
-        function fillContent() {
-            const params = getUrlParams();
-            document.getElementById('title').textContent = params.title;
-            const msgEl = document.getElementById('message');
-            msgEl.textContent = params.message;
-            if (typeof marked !== 'undefined') msgEl.innerHTML = marked.parse(msgEl.textContent);
-            document.getElementById('date').textContent = params.date;
         }
         window.onload = function() { createParticles(); fillContent(); };
     </script>
@@ -256,17 +273,34 @@ MACOS_HACKER_HTML = """\
     </div>
     <script src="https://cdn.jsdelivr.net/npm/marked/lib/marked.umd.js"></script>
     <script>
-        function getUrlParams() {
+        async function fillContent() {
             const p = new URLSearchParams(window.location.search);
-            return { title: p.get('title') || '消息推送', message: p.get('message') || '无告警信息', date: p.get('date') || '无时间信息' };
-        }
-        function fillContent() {
-            const params = getUrlParams();
-            document.getElementById('title').textContent = params.title;
+            const id = p.get('id');
+            let title, message, date;
+            if (id) {
+                try {
+                    const resp = await fetch('/api/content/' + encodeURIComponent(id));
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        title = data.title || '消息推送';
+                        message = data.content || '无告警信息';
+                        date = data.date || '无时间信息';
+                    } else {
+                        title = '消息推送'; message = '消息不存在或已过期'; date = '';
+                    }
+                } catch (e) {
+                    title = '消息推送'; message = '加载失败'; date = '';
+                }
+            } else {
+                title = p.get('title') || '消息推送';
+                message = p.get('message') || '无告警信息';
+                date = p.get('date') || '无时间信息';
+            }
+            document.getElementById('title').textContent = title;
             const msgEl = document.getElementById('message');
-            msgEl.textContent = params.message;
+            msgEl.textContent = message;
             if (typeof marked !== 'undefined') msgEl.innerHTML = marked.parse(msgEl.textContent);
-            document.getElementById('date').textContent = params.date;
+            document.getElementById('date').textContent = date;
         }
         window.onload = function() { fillContent(); };
     </script>

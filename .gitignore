@@ -1,5 +1,6 @@
 .env
 config.toml
+messages.db
 __pycache__/
 *.pyc
 .venv/

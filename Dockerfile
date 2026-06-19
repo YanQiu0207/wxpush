@@ -10,6 +10,4 @@ COPY run.py .
 
 ENV PORT=3939
 
-EXPOSE 3939
-
 CMD ["python", "run.py"]

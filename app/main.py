@@ -1,5 +1,12 @@
+import logging
 import os
+import time
+import sqlite3
+import secrets
 import asyncio
+from pathlib import Path
+from contextlib import asynccontextmanager
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 from fastapi import FastAPI, Request, Header
@@ -11,7 +18,7 @@ from app.html_pages import HOMEPAGE_HTML, MACOS_HACKER_HTML, SKIN_HTML, test_pag
 
 load_dotenv()
 
-app = FastAPI(docs_url=None, redoc_url=None)
+logger = logging.getLogger(__name__)
 
 API_TOKEN = os.environ.get("API_TOKEN", "")
 WX_APPID = os.environ.get("WX_APPID", "")
@@ -19,6 +26,58 @@ WX_SECRET = os.environ.get("WX_SECRET", "")
 WX_USERID = os.environ.get("WX_USERID", "")
 WX_TEMPLATE_ID = os.environ.get("WX_TEMPLATE_ID", "")
 WX_BASE_URL = os.environ.get("WX_BASE_URL", "")
+
+DB_PATH = Path(__file__).parent.parent / "messages.db"
+_BEIJING_TZ = timezone(timedelta(hours=8))
+TTL_SECONDS = 7 * 24 * 3600
+
+
+# --- SQLite helpers (sync, executed in thread pool) ---
+
+def _init_db() -> None:
+    con = sqlite3.connect(DB_PATH)
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS messages (
+            id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            created_at REAL NOT NULL
+        )
+    """)
+    con.execute("DELETE FROM messages WHERE created_at < ?", (time.time() - TTL_SECONDS,))
+    con.commit()
+    con.close()
+
+
+def _store(msg_id: str, title: str, content: str) -> None:
+    con = sqlite3.connect(DB_PATH)
+    con.execute(
+        "INSERT INTO messages (id, title, content, created_at) VALUES (?, ?, ?, ?)",
+        (msg_id, title, content, time.time()),
+    )
+    con.commit()
+    con.close()
+
+
+def _fetch(msg_id: str) -> dict | None:
+    con = sqlite3.connect(DB_PATH)
+    cur = con.execute(
+        "SELECT title, content, created_at FROM messages WHERE id = ?", (msg_id,)
+    )
+    row = cur.fetchone()
+    con.close()
+    return {"title": row[0], "content": row[1], "created_at": row[2]} if row else None
+
+
+# --- App ---
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await asyncio.to_thread(_init_db)
+    yield
+
+
+app = FastAPI(docs_url=None, redoc_url=None, lifespan=lifespan)
 
 
 async def _parse_params(request: Request) -> dict:
@@ -94,6 +153,21 @@ async def skin_macos_hacker():
     return MACOS_HACKER_HTML
 
 
+@app.get("/api/content/{msg_id}")
+async def api_content(msg_id: str):
+    msg = await asyncio.to_thread(_fetch, msg_id)
+    if not msg:
+        logger.info("content not found msg_id=%s", msg_id)
+        return JSONResponse({"msg": "Not found"}, status_code=404)
+    logger.info("content fetched msg_id=%s", msg_id)
+    dt = datetime.fromtimestamp(msg["created_at"], tz=_BEIJING_TZ)
+    return JSONResponse({
+        "title": msg["title"],
+        "content": msg["content"],
+        "date": dt.strftime("%Y-%m-%d %H:%M:%S"),
+    })
+
+
 @app.api_route("/wxsend", methods=["GET", "POST", "PUT", "PATCH"])
 async def wxsend(request: Request, authorization: Optional[str] = Header(default=None)):
     params = await _parse_params(request)
@@ -120,6 +194,13 @@ async def wxsend(request: Request, authorization: Optional[str] = Header(default
             status_code=500,
         )
 
+    msg_id = secrets.token_urlsafe(6)
+    await asyncio.to_thread(_store, msg_id, title, content)
+    logger.info("stored msg_id=%s title=%r", msg_id, title)
+
+    separator = "&" if base_url and "?" in base_url else "?"
+    jump_url = f"{base_url or ''}{separator}id={msg_id}"
+
     user_list = [u.strip() for u in userid_str.split("|") if u.strip()]
 
     try:
@@ -128,17 +209,20 @@ async def wxsend(request: Request, authorization: Optional[str] = Header(default
             return JSONResponse({"msg": "Failed to get access token"}, status_code=500)
 
         results = await asyncio.gather(
-            *[send_message(access_token, uid, template_id, base_url, title, content) for uid in user_list]
+            *[send_message(access_token, uid, template_id, jump_url, title, content) for uid in user_list]
         )
 
         successful = [r for r in results if r.get("errmsg") == "ok"]
         if successful:
+            logger.info("wx push ok msg_id=%s users=%d/%d", msg_id, len(successful), len(user_list))
             return JSONResponse({"msg": f"Successfully sent messages to {len(successful)} user(s). First response: ok"})
         else:
             first_error = results[0].get("errmsg", "Unknown error") if results else "Unknown error"
+            logger.warning("wx push failed msg_id=%s error=%r", msg_id, first_error)
             return JSONResponse({"msg": f"Failed to send messages. First error: {first_error}"}, status_code=500)
 
     except Exception as e:
+        logger.exception("wx push exception msg_id=%s", msg_id)
         return JSONResponse({"msg": f"An error occurred: {e}"}, status_code=500)
 
 
