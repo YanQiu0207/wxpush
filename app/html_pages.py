@@ -131,7 +131,10 @@ SKIN_HTML = """\
             10% { opacity: 1; } 90% { opacity: 1; }
             100% { transform: translateY(-100vh) translateX(100px); opacity: 0; }
         }
+        .info-content .mermaid { background: rgba(0,0,0,0.2); border-radius: 8px; padding: 1em; margin-bottom: 1em; overflow-x: auto; }
+        .info-content .mermaid svg { max-width: 100%; height: auto; }
     </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
 </head>
 <body>
     <div class="particles" id="particles"></div>
@@ -146,13 +149,39 @@ SKIN_HTML = """\
             <div class="info-content" id="date">无时间信息</div>
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/marked/lib/marked.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@14/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
     <script>
+        mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+
+        async function renderMarkdown(markdown, el) {
+            el.innerHTML = marked.parse(markdown);
+            el.querySelectorAll('pre > code.language-mermaid').forEach(code => {
+                const div = document.createElement('div');
+                div.className = 'mermaid';
+                div.textContent = code.textContent;
+                code.closest('pre').replaceWith(div);
+            });
+            const mermaidNodes = el.querySelectorAll('.mermaid');
+            if (mermaidNodes.length) await mermaid.run({ nodes: mermaidNodes });
+            renderMathInElement(el, {
+                delimiters: [
+                    { left: '$$', right: '$$', display: true },
+                    { left: '$', right: '$', display: false },
+                ],
+                throwOnError: false,
+            });
+        }
+
         async function fillContent() {
             const p = new URLSearchParams(window.location.search);
             const id = p.get('id');
             let title, message, date;
             if (id) {
+                const msgEl = document.getElementById('message');
+                msgEl.textContent = '加载中…';
                 try {
                     const resp = await fetch('/api/content/' + encodeURIComponent(id));
                     if (resp.ok) {
@@ -173,10 +202,10 @@ SKIN_HTML = """\
             }
             document.getElementById('title').textContent = title;
             const msgEl = document.getElementById('message');
-            msgEl.textContent = message;
-            if (typeof marked !== 'undefined') msgEl.innerHTML = marked.parse(msgEl.textContent);
+            await renderMarkdown(message, msgEl);
             document.getElementById('date').textContent = date;
         }
+
         function createParticles() {
             const c = document.getElementById('particles');
             const colors = ['rgba(0,188,212,0.2)', 'rgba(0,150,136,0.2)', 'rgba(77,182,172,0.15)'];
@@ -189,7 +218,9 @@ SKIN_HTML = """\
                 c.appendChild(el);
             }
         }
-        window.onload = function() { createParticles(); fillContent(); };
+
+        createParticles();
+        fillContent();
     </script>
 </body>
 </html>"""
@@ -246,7 +277,10 @@ MACOS_HACKER_HTML = """\
         .info-content li { margin-bottom: 0.5em; }
         .info-content a { color: #00ff00; }
         @media (max-width: 768px) { .terminal { width: 100%; max-width: 100%; height: auto; } }
+        .info-content .mermaid { background: rgba(0,30,0,0.5); border-radius: 4px; padding: 1em; margin-bottom: 1em; overflow-x: auto; }
+        .info-content .mermaid svg { max-width: 100%; height: auto; }
     </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
 </head>
 <body>
     <div class="matrix-bg"></div>
@@ -271,13 +305,39 @@ MACOS_HACKER_HTML = """\
             </div>
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/marked/lib/marked.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@14/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
     <script>
+        mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+
+        async function renderMarkdown(markdown, el) {
+            el.innerHTML = marked.parse(markdown);
+            el.querySelectorAll('pre > code.language-mermaid').forEach(code => {
+                const div = document.createElement('div');
+                div.className = 'mermaid';
+                div.textContent = code.textContent;
+                code.closest('pre').replaceWith(div);
+            });
+            const mermaidNodes = el.querySelectorAll('.mermaid');
+            if (mermaidNodes.length) await mermaid.run({ nodes: mermaidNodes });
+            renderMathInElement(el, {
+                delimiters: [
+                    { left: '$$', right: '$$', display: true },
+                    { left: '$', right: '$', display: false },
+                ],
+                throwOnError: false,
+            });
+        }
+
         async function fillContent() {
             const p = new URLSearchParams(window.location.search);
             const id = p.get('id');
             let title, message, date;
             if (id) {
+                const msgEl = document.getElementById('message');
+                msgEl.textContent = '加载中…';
                 try {
                     const resp = await fetch('/api/content/' + encodeURIComponent(id));
                     if (resp.ok) {
@@ -298,11 +358,11 @@ MACOS_HACKER_HTML = """\
             }
             document.getElementById('title').textContent = title;
             const msgEl = document.getElementById('message');
-            msgEl.textContent = message;
-            if (typeof marked !== 'undefined') msgEl.innerHTML = marked.parse(msgEl.textContent);
+            await renderMarkdown(message, msgEl);
             document.getElementById('date').textContent = date;
         }
-        window.onload = function() { fillContent(); };
+
+        fillContent();
     </script>
 </body>
 </html>"""

@@ -32,7 +32,7 @@ async def send_message(
         "url": jump_url,
         "data": {
             "title": {"value": title},
-            "content": {"value": content},
+            "content": {"value": content[:50]},
         },
     }
 

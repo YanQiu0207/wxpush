@@ -7,11 +7,16 @@ API_TOKEN  = "tesla"
 SHORTID    = "tesla"   # config.toml [users] 中定义的 shortid
 # ───────────────────────────────────────────────────────────────
 
+import asyncio
+import logging
 import re
 import sys
 from pathlib import Path
 
-import httpx
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from app.client import send_wxsend
+
+logging.basicConfig(level=logging.INFO, stream=sys.stderr, format="%(message)s")
 
 
 def extract_title(content: str, filename: str) -> str:
@@ -44,16 +49,15 @@ def main() -> None:
     content = file_path.read_text(encoding="utf-8")
     title = extract_title(content, file_path.name)
 
-    endpoint = WXSEND_URL.rstrip("/") + "/wxsend"
-    payload = {"title": title, "content": content, "token": API_TOKEN, "shortid": SHORTID}
-
-    print(f"Pushing \"{title}\" → {endpoint}")
-    resp = httpx.post(endpoint, json=payload)
-    msg = resp.json().get("msg", resp.text) if resp.headers.get("content-type", "").startswith("application/json") else resp.text
-    print(msg)
-
-    if resp.status_code != 200:
+    print(f'Pushing "{title}" → {WXSEND_URL.rstrip("/")}/wxsend', file=sys.stderr)
+    try:
+        data = asyncio.run(send_wxsend(WXSEND_URL, API_TOKEN, title, content, shortid=SHORTID))
+    except Exception as exc:
+        print(f"Error: {exc}", file=sys.stderr)
         sys.exit(1)
+
+    msg = data.get("msg", str(data))
+    print(msg)
 
 
 if __name__ == "__main__":
