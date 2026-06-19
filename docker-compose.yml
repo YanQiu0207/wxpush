@@ -2,9 +2,9 @@ services:
   wxpush:
     build: .
     ports:
-      - "${PORT:-3939}:${PORT:-3939}"
+      - "${PORT:-40001}:${PORT:-40001}"
     environment:
-      PORT: "${PORT:-3939}"
+      PORT: "${PORT:-40001}"
     volumes:
       - ./config.toml:/app/config.toml:ro
     restart: unless-stopped

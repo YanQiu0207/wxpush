@@ -8,6 +8,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app/ app/
 COPY run.py .
 
-ENV PORT=3939
+ENV PORT=40001
 
 CMD ["python", "run.py"]

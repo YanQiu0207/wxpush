@@ -1,5 +1,5 @@
 [server]
-port = 3939
+port = 40001
 
 [app]
 api_token      = "your_secret_token"

@@ -70,7 +70,7 @@ def main() -> None:
     uvicorn.run(
         "app.main:app",
         host=args.host,
-        port=int(cfg.get("PORT", 3939)),
+        port=int(cfg.get("PORT", 40001)),
         reload=args.reload,
     )
 
