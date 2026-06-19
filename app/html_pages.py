@@ -138,11 +138,12 @@ SKIN_HTML = """\
     <div class="container pulse">
         <div class="title" id="title">消息推送</div>
         <div class="info-card">
-            <div class="info-label">时间</div>
-            <div class="info-content" id="date">无时间信息</div>
+            <div class="info-label">通知内容</div>
+            <div class="info-content" id="message">无告警信息</div>
         </div>
         <div class="info-card">
-            <div class="info-content" id="message">无告警信息</div>
+            <div class="info-label">时间</div>
+            <div class="info-content" id="date">无时间信息</div>
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/marked/lib/marked.umd.js"></script>
@@ -261,11 +262,12 @@ MACOS_HACKER_HTML = """\
         </div>
         <div class="terminal-body">
             <div class="info-card">
-                <div class="info-label">时间</div>
-                <div class="info-content" id="date">无时间信息</div>
+                <div class="info-label">通知内容</div>
+                <div class="info-content" id="message">无告警信息</div>
             </div>
             <div class="info-card">
-                <div class="info-content" id="message">无告警信息</div>
+                <div class="info-label">时间</div>
+                <div class="info-content" id="date">无时间信息</div>
             </div>
         </div>
     </div>

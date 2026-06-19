@@ -22,8 +22,8 @@ def extract_title(content: str, filename: str) -> str:
             m = re.search(r"^title:\s*['\"]?(.+?)['\"]?\s*$", frontmatter, re.MULTILINE)
             if m:
                 return m.group(1).strip()
-    # First heading (any level)
-    m = re.search(r"^#{1,6}\s+(.+)", content, re.MULTILINE)
+    # First H1 heading
+    m = re.search(r"^#\s+(.+)", content, re.MULTILINE)
     if m:
         return m.group(1).strip()
     # Fallback to filename stem
