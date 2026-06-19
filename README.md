@@ -1,7 +1,5 @@
 # WXPush Python 版
 
-基于 FastAPI + Docker 的微信公众号模板消息推送服务，是原 [Cloudflare Workers 版本](../wxpush) 的 Python 重写。
-
 ## 特性
 
 - 与原版接口完全兼容（相同路由、相同参数、相同响应格式）
@@ -22,7 +20,6 @@ wxpush-py/
 │   └── html_pages.py        # 内联 HTML 页面
 ├── .env.example             # 环境变量模板
 ├── config.toml.example      # 配置文件模板
-├── mcp_server.py            # MCP 服务入口
 ├── run.py                   # 服务启动入口（处理三级配置优先级）
 ├── .gitignore
 ├── Dockerfile
@@ -244,50 +241,7 @@ curl -X POST http://localhost:40001/wxsend \
 
 ## MCP 服务
 
-`mcp_server.py` 将推送能力封装为 MCP 工具，供 Claude Desktop 等支持 MCP 协议的客户端直接调用。
-
-### 工具
-
-| 工具名 | 参数 | 说明 |
-|---|---|---|
-| `send_wechat_message` | `title`、`content`、`shortid` | 发送微信模板消息给指定用户 |
-
-`shortid` 在服务端 `config.toml [users]` 中定义，调用方无需感知 OpenID。
-
-### 配置（Claude Desktop）
-
-在 `claude_desktop_config.json` 中添加：
-
-```json
-{
-  "mcpServers": {
-    "wxpush": {
-      "command": "python",
-      "args": ["/path/to/wxpush-py/mcp_server.py"],
-      "env": {
-        "WXPUSH_URL": "http://your-server:40001",
-        "WXPUSH_TOKEN": "your-token"
-      }
-    }
-  }
-}
-```
-
-| 环境变量 | 说明 |
-|---|---|
-| `WXPUSH_URL` | wxpush HTTP 服务地址 |
-| `WXPUSH_TOKEN` | API 访问令牌（与服务端 `API_TOKEN` 一致） |
-
-## 与原版对应关系
-
-原版基于 Cloudflare Workers（JavaScript），本版在保持接口完全兼容的前提下，用 Python 重写了全部逻辑：
-
-| 原版 | 本版 |
-|---|---|
-| Cloudflare Workers | FastAPI + uvicorn |
-| `fetch()` | httpx 异步 HTTP |
-| Worker 环境变量 `env.*` | 系统环境变量 / `.env` 文件 |
-| 无状态 serverless | Docker 容器 |
+推送能力已封装为独立 MCP 包 [wxpush-mcp](../wxpush-mcp)，接入方式见 [wxpush-mcp/README.md](../wxpush-mcp/README.md)。
 
 ## 许可证
 
